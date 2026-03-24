@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 import { ASPECT_RATIOS } from '@/constants/filters';
+import { useLanguage } from '@/context/language-context';
 
 interface RatioSelectorProps {
   selectedRatio: string;
@@ -15,6 +16,7 @@ interface RatioSelectorProps {
 }
 
 export default function RatioSelector({ selectedRatio, onSelect }: RatioSelectorProps) {
+  const { language } = useLanguage();
   return (
     <ScrollView
       horizontal
@@ -34,7 +36,9 @@ export default function RatioSelector({ selectedRatio, onSelect }: RatioSelector
               <RatioVisual ratio={item.ratio} isSelected={isSelected} />
             </View>
             <Text style={[styles.label, isSelected && styles.labelSelected]}>
-              {item.labelKo}
+              {language === 'ko' ? item.labelKo : 
+               language === 'ja' ? item.labelJa : 
+               language === 'zh' ? item.labelZh : item.label}
             </Text>
           </TouchableOpacity>
         );

@@ -2,6 +2,8 @@ export interface FilterPreset {
   id: string;
   name: string;
   nameKo: string;
+  nameJa: string;
+  nameZh: string;
   /** RGBA overlay color */
   overlay: string;
   /** 0-1 overlay opacity */
@@ -18,6 +20,8 @@ export interface FilterCategory {
   id: string;
   name: string;
   nameKo: string;
+  nameJa: string;
+  nameZh: string;
   icon: string;
   filters: FilterPreset[];
 }
@@ -27,12 +31,16 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
     id: 'basic',
     name: 'Basic',
     nameKo: '기본',
+    nameJa: '基本',
+    nameZh: '基础',
     icon: '✨',
     filters: [
       {
         id: 'original',
         name: 'Original',
         nameKo: '원본',
+        nameJa: 'オリジナル',
+        nameZh: '原图',
         overlay: 'transparent',
         overlayOpacity: 0,
         brightness: 1,
@@ -43,6 +51,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'vivid',
         name: 'Vivid',
         nameKo: '비비드',
+        nameJa: 'ビビッド',
+        nameZh: '鲜艳',
         overlay: 'rgba(255, 100, 50, 0.08)',
         overlayOpacity: 0.08,
         brightness: 1.1,
@@ -53,6 +63,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'soft',
         name: 'Soft',
         nameKo: '소프트',
+        nameJa: 'ソフト',
+        nameZh: '柔和',
         overlay: 'rgba(255, 230, 220, 0.1)',
         overlayOpacity: 0.1,
         brightness: 1.08,
@@ -63,6 +75,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'sharp',
         name: 'Sharp',
         nameKo: '선명한',
+        nameJa: 'シャープ',
+        nameZh: '锐利',
         overlay: 'transparent',
         overlayOpacity: 0,
         brightness: 1.02,
@@ -75,12 +89,16 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
     id: 'mood',
     name: 'Mood',
     nameKo: '무드',
+    nameJa: 'ムード',
+    nameZh: '情调',
     icon: '🌙',
     filters: [
       {
         id: 'warm',
         name: 'Warm',
         nameKo: '따뜻한',
+        nameJa: '暖かい',
+        nameZh: '暖色',
         overlay: 'rgba(255, 165, 0, 0.15)',
         overlayOpacity: 0.15,
         brightness: 1.05,
@@ -91,6 +109,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'cool',
         name: 'Cool',
         nameKo: '쿨톤',
+        nameJa: 'クール',
+        nameZh: '冷色',
         overlay: 'rgba(0, 120, 255, 0.12)',
         overlayOpacity: 0.12,
         brightness: 1.0,
@@ -101,6 +121,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'dreamy',
         name: 'Dreamy',
         nameKo: '몽환',
+        nameJa: 'ドリーミー',
+        nameZh: '梦幻',
         overlay: 'rgba(200, 150, 255, 0.15)',
         overlayOpacity: 0.15,
         brightness: 1.1,
@@ -111,6 +133,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'cozy',
         name: 'Cozy',
         nameKo: '아늑한',
+        nameJa: 'コージー',
+        nameZh: '舒适',
         overlay: 'rgba(180, 120, 60, 0.12)',
         overlayOpacity: 0.12,
         brightness: 1.02,
@@ -123,12 +147,16 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
     id: 'nature',
     name: 'Nature',
     nameKo: '자연',
+    nameJa: '自然',
+    nameZh: '自然',
     icon: '🌿',
     filters: [
       {
         id: 'sunset',
         name: 'Sunset',
         nameKo: '석양',
+        nameJa: '夕焼け',
+        nameZh: '日落',
         overlay: 'rgba(255, 100, 50, 0.18)',
         overlayOpacity: 0.18,
         brightness: 1.05,
@@ -139,6 +167,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'ocean',
         name: 'Ocean',
         nameKo: '바다',
+        nameJa: 'オーシャン',
+        nameZh: '海洋',
         overlay: 'rgba(0, 200, 200, 0.12)',
         overlayOpacity: 0.12,
         brightness: 1.0,
@@ -149,6 +179,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'forest',
         name: 'Forest',
         nameKo: '숲',
+        nameJa: 'フォレスト',
+        nameZh: '森林',
         overlay: 'rgba(34, 139, 34, 0.12)',
         overlayOpacity: 0.12,
         brightness: 0.95,
@@ -159,6 +191,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'spring',
         name: 'Spring',
         nameKo: '봄',
+        nameJa: '春',
+        nameZh: '春天',
         overlay: 'rgba(255, 200, 220, 0.1)',
         overlayOpacity: 0.1,
         brightness: 1.08,
@@ -169,6 +203,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'autumn',
         name: 'Autumn',
         nameKo: '가을',
+        nameJa: '秋',
+        nameZh: '秋天',
         overlay: 'rgba(200, 120, 40, 0.15)',
         overlayOpacity: 0.15,
         brightness: 0.98,
@@ -181,12 +217,16 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
     id: 'retro',
     name: 'Retro',
     nameKo: '레트로',
+    nameJa: 'レトロ',
+    nameZh: '复古',
     icon: '📷',
     filters: [
       {
         id: 'vintage',
         name: 'Vintage',
         nameKo: '빈티지',
+        nameJa: 'ヴィンテージ',
+        nameZh: '怀旧',
         overlay: 'rgba(200, 160, 90, 0.2)',
         overlayOpacity: 0.2,
         brightness: 0.95,
@@ -197,6 +237,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'film',
         name: 'Film',
         nameKo: '필름',
+        nameJa: 'フィルム',
+        nameZh: '电影',
         overlay: 'rgba(80, 100, 80, 0.1)',
         overlayOpacity: 0.1,
         brightness: 0.98,
@@ -207,6 +249,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'polaroid',
         name: 'Polaroid',
         nameKo: '폴라로이드',
+        nameJa: 'ポラロイド',
+        nameZh: '拍立得',
         overlay: 'rgba(255, 240, 200, 0.15)',
         overlayOpacity: 0.15,
         brightness: 1.05,
@@ -217,6 +261,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'sepia',
         name: 'Sepia',
         nameKo: '세피아',
+        nameJa: 'セピア',
+        nameZh: '深褐色',
         overlay: 'rgba(180, 130, 70, 0.25)',
         overlayOpacity: 0.25,
         brightness: 0.95,
@@ -229,12 +275,16 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
     id: 'bnw',
     name: 'B&W',
     nameKo: '흑백',
+    nameJa: '白黒',
+    nameZh: '黑白',
     icon: '⚫',
     filters: [
       {
         id: 'bw',
         name: 'B&W',
         nameKo: '흑백',
+        nameJa: 'モノクロ',
+        nameZh: '黑白',
         overlay: 'transparent',
         overlayOpacity: 0,
         brightness: 1.05,
@@ -245,6 +295,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'noir',
         name: 'Noir',
         nameKo: '느와르',
+        nameJa: 'ノワール',
+        nameZh: '黑色电影',
         overlay: 'rgba(0, 0, 30, 0.15)',
         overlayOpacity: 0.15,
         brightness: 0.85,
@@ -255,6 +307,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'silver',
         name: 'Silver',
         nameKo: '실버',
+        nameJa: 'シルバー',
+        nameZh: '银色',
         overlay: 'rgba(180, 190, 200, 0.08)',
         overlayOpacity: 0.08,
         brightness: 1.1,
@@ -265,6 +319,8 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
         id: 'ink',
         name: 'Ink',
         nameKo: '잉크',
+        nameJa: 'インク',
+        nameZh: '墨水',
         overlay: 'rgba(10, 10, 30, 0.12)',
         overlayOpacity: 0.12,
         brightness: 0.9,
@@ -279,11 +335,12 @@ export const FILTER_CATEGORIES: FilterCategory[] = [
 export const FILTERS: FilterPreset[] = FILTER_CATEGORIES.flatMap((cat) => cat.filters);
 
 export const ASPECT_RATIOS = [
-  { id: 'free', label: 'Free', labelKo: '자유', ratio: null },
-  { id: '1:1', label: '1:1', labelKo: '정방형 (1:1)', ratio: 1 },
-  { id: '4:5', label: '4:5', labelKo: '인스타 (4:5)', ratio: 4 / 5 },
-  { id: '9:16', label: '9:16', labelKo: '스토리 (9:16)', ratio: 9 / 16 },
-  { id: '16:9', label: '16:9', labelKo: '유튜브 (16:9)', ratio: 16 / 9 },
-  { id: '3:4', label: '3:4', labelKo: '3:4', ratio: 3 / 4 },
-  { id: '4:3', label: '4:3', labelKo: '4:3', ratio: 4 / 3 },
+  { id: 'free', label: 'Free', labelKo: '자유', labelJa: '自由', labelZh: '自由', ratio: null },
+  { id: '1:1', label: '1:1', labelKo: '정방형 (1:1)', labelJa: '正方形 (1:1)', labelZh: '正方形 (1:1)', ratio: 1 },
+  { id: '4:5', label: '4:5', labelKo: '인스타 (4:5)', labelJa: 'インスタ (4:5)', labelZh: '照片 (4:5)', ratio: 4 / 5 },
+  { id: '9:16', label: '9:16', labelKo: '스토리 (9:16)', labelJa: 'ストーリー (9:16)', labelZh: '故事 (9:16)', ratio: 9 / 16 },
+  { id: '16:9', label: '16:9', labelKo: '유튜브 (16:9)', labelJa: 'YouTube (16:9)', labelZh: '横屏 (16:9)', ratio: 16 / 9 },
+  { id: '3:4', label: '3:4', labelKo: '3:4', labelJa: '3:4', labelZh: '3:4', ratio: 3 / 4 },
+  { id: '4:3', label: '4:3', labelKo: '4:3', labelJa: '4:3', labelZh: '4:3', ratio: 4 / 3 },
 ];
+

@@ -1,23 +1,26 @@
 import { Platform } from 'react-native';
 
+const dark = {
+  background: '#0A0A0F',
+  surface: '#14141F',
+  surfaceLight: '#1E1E2E',
+  card: '#1A1A2E',
+  text: '#F0F0F5',
+  textSecondary: '#8888AA',
+  textMuted: '#555577',
+  accent: '#6C5CE7',
+  accentLight: '#A29BFE',
+  accentGlow: 'rgba(108, 92, 231, 0.3)',
+  border: '#2A2A3E',
+  danger: '#FF6B6B',
+  success: '#51CF66',
+  white: '#FFFFFF',
+  overlay: 'rgba(0, 0, 0, 0.7)',
+};
+
 export const Colors = {
-  dark: {
-    background: '#0A0A0F',
-    surface: '#14141F',
-    surfaceLight: '#1E1E2E',
-    card: '#1A1A2E',
-    text: '#F0F0F5',
-    textSecondary: '#8888AA',
-    textMuted: '#555577',
-    accent: '#6C5CE7',
-    accentLight: '#A29BFE',
-    accentGlow: 'rgba(108, 92, 231, 0.3)',
-    border: '#2A2A3E',
-    danger: '#FF6B6B',
-    success: '#51CF66',
-    white: '#FFFFFF',
-    overlay: 'rgba(0, 0, 0, 0.7)',
-  },
+  dark,
+  light: dark,
 };
 
 export const Spacing = {

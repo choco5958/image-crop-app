@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  ScrollView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -14,11 +15,14 @@ import Animated, {
   FadeInDown,
   FadeInUp,
 } from 'react-native-reanimated';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize, TestIds } from '@/components/ads';
+import { useLanguage } from '@/context/language-context';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const { t } = useLanguage();
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -70,58 +74,81 @@ export default function HomeScreen() {
         <View style={styles.bgCircle2} />
       </View>
 
-      {/* Logo Area */}
-      <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.logoArea}>
-        <View style={styles.logoIcon}>
-          <Text style={styles.logoEmoji}>✂️</Text>
-        </View>
-        <Text style={styles.title}>CropLab</Text>
-        <Text style={styles.subtitle}>비율 크롭 & 필터 에디터</Text>
-      </Animated.View>
+      {/* Header with Settings */}
+      <View style={styles.header}>
+        <View style={{ width: 44 }} />
+        <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.logoTitleArea}>
+          <Text style={styles.headerTitleTiny}>CropLab</Text>
+        </Animated.View>
+        <TouchableOpacity 
+          style={styles.settingsBtn} 
+          onPress={() => router.push('/settings')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={24} color={Colors.dark.text} />
+        </TouchableOpacity>
+      </View>
 
-      {/* Feature badges */}
-      <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.badges}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>📐 비율 크롭</Text>
-        </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>🎨 10+ 필터</Text>
-        </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>💾 고화질 저장</Text>
-        </View>
-      </Animated.View>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.mainContent}>
+          {/* Logo Area */}
+          <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.logoArea}>
+            <View style={styles.logoIcon}>
+              <Text style={styles.logoEmoji}>✂️</Text>
+            </View>
+            <Text style={styles.title}>CropLab</Text>
+            <Text style={styles.subtitle}>{t('appSubtitle')}</Text>
+          </Animated.View>
 
-      {/* Action Buttons */}
-      <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.actions}>
-        <TouchableOpacity style={styles.primaryButton} onPress={pickImage} activeOpacity={0.8}>
-          <View style={styles.primaryButtonInner}>
-            <Text style={styles.primaryButtonIcon}>🖼️</Text>
-            <Text style={styles.primaryButtonText}>갤러리에서 선택</Text>
+          {/* Feature badges */}
+          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.badges}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>📐 {t('crop')}</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>🎨 {t('filter')}</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>💾 {t('save')}</Text>
+            </View>
+          </Animated.View>
+
+          {/* Action Buttons */}
+          <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.actions}>
+            <TouchableOpacity style={styles.primaryButton} onPress={pickImage} activeOpacity={0.8}>
+              <View style={styles.primaryButtonInner}>
+                <Text style={styles.primaryButtonIcon}>🖼️</Text>
+                <Text style={styles.primaryButtonText}>{t('pickGallery')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryButton} onPress={takePhoto} activeOpacity={0.8}>
+              <Text style={styles.secondaryButtonIcon}>📷</Text>
+              <Text style={styles.secondaryButtonText}>{t('takePhoto')}</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
+        {/* Footer (inside scroll area for stability) */}
+        <Animated.View entering={FadeInDown.delay(800)} style={styles.footer}>
+          <Text style={styles.footerText}>
+            {t('supportRatios')}: 1:1 · 9:16 · 16:9 · 4:5 · 3:4 · Free
+          </Text>
+          <View style={styles.adContainer}>
+            <BannerAd
+              unitId={TestIds.BANNER}
+              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+              requestOptions={{
+                requestNonPersonalizedAdsOnly: true,
+              }}
+            />
           </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.secondaryButton} onPress={takePhoto} activeOpacity={0.8}>
-          <Text style={styles.secondaryButtonIcon}>📷</Text>
-          <Text style={styles.secondaryButtonText}>카메라 촬영</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Footer */}
-      <Animated.View entering={FadeInDown.delay(800)} style={styles.footer}>
-        <Text style={styles.footerText}>
-          지원 비율: 1:1 · 9:16 · 16:9 · 4:5 · 3:4 · Free
-        </Text>
-        <View style={styles.adContainer}>
-          <BannerAd
-            unitId={TestIds.BANNER}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
-          />
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 }
@@ -130,9 +157,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 16,
+    width: '100%',
+    zIndex: 10,
+  },
+  logoTitleArea: {
+    alignItems: 'center',
+  },
+  headerTitleTiny: {
+    color: Colors.dark.textSecondary,
+    fontSize: 15,
+    fontWeight: '700',
+    opacity: 0.8,
+  },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  mainContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xl,
   },
   bgGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -276,10 +337,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   footer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 20 : 0,
     width: '100%',
     alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+    backgroundColor: Colors.dark.background,
   },
   footerText: {
     color: Colors.dark.textMuted,
@@ -292,5 +353,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.dark.surface,
+    minHeight: 50,
   },
 });

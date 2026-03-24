@@ -53,6 +53,12 @@
             "useFrameworks": "static"
           }
         }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "맞춤형 광고용으로 기기 식별자를 수집하여 사용자에게 더 관련성 높은 광고를 제공합니다."
+        }
       ]
     ],
     "experiments": {
