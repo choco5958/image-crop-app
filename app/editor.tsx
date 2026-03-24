@@ -15,6 +15,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
+import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -24,19 +25,17 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Colors, Spacing, BorderRadius } from '@/constants/theme';
-import { FILTERS, FilterPreset } from '@/constants/filters';
 import CropOverlay from '@/components/crop-overlay';
 import RatioSelector from '@/components/ratio-selector';
-import FilterStrip from '@/components/filter-strip';
-import AdjustPanel, { AdjustValues, DEFAULT_ADJUST } from '@/components/adjust-panel';
-import BeautyPanel, { BeautyValues, DEFAULT_BEAUTY } from '@/components/beauty-panel';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 5;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-type EditorMode = 'crop' | 'filter' | 'adjust' | 'beauty';
+const interstitial = InterstitialAd.createForAdRequest(TestIds.INTERSTITIAL, {
+  requestNonPersonalizedAdsOnly: true,
+});
 
 export default function EditorScreen() {
   const params = useLocalSearchParams<{
@@ -49,14 +48,11 @@ export default function EditorScreen() {
   const originalWidth = Number(params.imageWidth) || 1080;
   const originalHeight = Number(params.imageHeight) || 1920;
 
-  const [mode, setMode] = useState<EditorMode>('crop');
   const [selectedRatioId, setSelectedRatioId] = useState('free');
   const [selectedRatio, setSelectedRatio] = useState<number | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<FilterPreset>(FILTERS[0]);
-  const [adjustValues, setAdjustValues] = useState<AdjustValues>({ ...DEFAULT_ADJUST });
-  const [beautyValues, setBeautyValues] = useState<BeautyValues>({ ...DEFAULT_BEAUTY });
   const [isExporting, setIsExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
+  const [adLoaded, setAdLoaded] = useState(false);
 
   const cropRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -84,13 +80,22 @@ export default function EditorScreen() {
     displayW = maxH * imageAspect;
   }
 
+  React.useEffect(() => {
+    const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      setAdLoaded(true);
+    });
+    
+    // Load the ad as soon as editor opens
+    interstitial.load();
+
+    return () => {
+      unsubscribeLoaded();
+    };
+  }, []);
+
   const handleRatioSelect = useCallback((id: string, ratio: number | null) => {
     setSelectedRatioId(id);
     setSelectedRatio(ratio);
-  }, []);
-
-  const handleFilterSelect = useCallback((filter: FilterPreset) => {
-    setSelectedFilter(filter);
   }, []);
 
   const handleCropChange = useCallback((crop: { x: number; y: number; width: number; height: number }) => {
@@ -238,10 +243,21 @@ export default function EditorScreen() {
             <TouchableOpacity
               style={styles.doneButton}
               onPress={() => {
-                setExportDone(false);
-                setSelectedFilter(FILTERS[0]);
-                setSelectedRatioId('free');
-                setSelectedRatio(null);
+                const action = () => {
+                  setExportDone(false);
+                  setSelectedRatioId('free');
+                  setSelectedRatio(null);
+                };
+                if (adLoaded) {
+                  const unsub = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+                    unsub();
+                    interstitial.load();
+                    action();
+                  });
+                  interstitial.show();
+                } else {
+                  action();
+                }
               }}
               activeOpacity={0.8}
             >
@@ -249,7 +265,19 @@ export default function EditorScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.doneButton, styles.doneButtonPrimary]}
-              onPress={() => router.replace('/')}
+              onPress={() => {
+                const action = () => router.replace('/');
+                if (adLoaded) {
+                  const unsub = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+                    unsub();
+                    interstitial.load();
+                    action();
+                  });
+                  interstitial.show();
+                } else {
+                  action();
+                }
+              }}
               activeOpacity={0.8}
             >
               <Text style={[styles.doneButtonText, styles.doneButtonPrimaryText]}>새 사진</Text>
@@ -297,118 +325,16 @@ export default function EditorScreen() {
                 style={[styles.previewImage, { width: displayW, height: displayH }]}
                 resizeMode="cover"
               />
-
-              {/* Filter overlay on preview */}
-              {selectedFilter.id !== 'original' && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      backgroundColor: selectedFilter.overlay,
-                      opacity: selectedFilter.saturation < 0.5 ? 0.5 : selectedFilter.overlayOpacity * 2,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
-              {selectedFilter.saturation < 0.5 && (
-                <View
-                  style={[styles.filterPreviewOverlay, { backgroundColor: 'rgba(128,128,128,0.45)' }]}
-                  pointerEvents="none"
-                />
-              )}
-
-              {/* Adjust overlays on preview */}
-              {(adjustValues.brightness !== 0 || adjustValues.warmth !== 0) && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      backgroundColor: adjustValues.warmth > 0
-                        ? `rgba(255, 165, 0, ${Math.abs(adjustValues.warmth) / 500})`
-                        : adjustValues.warmth < 0
-                        ? `rgba(0, 120, 255, ${Math.abs(adjustValues.warmth) / 500})`
-                        : 'transparent',
-                      opacity: 1,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
-              {adjustValues.brightness !== 0 && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      backgroundColor: adjustValues.brightness > 0
-                        ? `rgba(255, 255, 255, ${adjustValues.brightness / 300})`
-                        : `rgba(0, 0, 0, ${Math.abs(adjustValues.brightness) / 300})`,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
-              {adjustValues.vignette > 0 && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      backgroundColor: 'transparent',
-                      borderWidth: adjustValues.vignette * 0.5,
-                      borderColor: `rgba(0, 0, 0, ${adjustValues.vignette / 150})`,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
-
-              {/* Beauty overlays on preview */}
-              {beautyValues.blush > 0 && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      backgroundColor: `rgba(255, 107, 157, ${beautyValues.blush / 400})`,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
-              {beautyValues.skinTone > 0 && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      backgroundColor: `rgba(255, 240, 230, ${beautyValues.skinTone / 400})`,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
-              {beautyValues.skinSmooth > 0 && (
-                <View
-                  style={[
-                    styles.filterPreviewOverlay,
-                    {
-                      // fake blur/smoothing via subtle white overlay
-                      backgroundColor: `rgba(255, 255, 255, ${beautyValues.skinSmooth / 400})`,
-                    },
-                  ]}
-                  pointerEvents="none"
-                />
-              )}
             </Animated.View>
           </GestureDetector>
 
-          {/* Crop overlay (only in crop mode) */}
-          {mode === 'crop' && (
-            <CropOverlay
-              containerWidth={displayW}
-              containerHeight={displayH}
-              aspectRatio={selectedRatio}
-              onCropChange={handleCropChange}
-            />
-          )}
+          {/* Crop overlay */}
+          <CropOverlay
+            containerWidth={displayW}
+            containerHeight={displayH}
+            aspectRatio={selectedRatio}
+            onCropChange={handleCropChange}
+          />
         </View>
 
         {/* Zoom indicator */}
@@ -422,64 +348,9 @@ export default function EditorScreen() {
         )}
       </View>
 
-      {/* Mode Tabs */}
-      <View style={styles.modeTabs}>
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'crop' && styles.modeTabActive]}
-          onPress={() => setMode('crop')}
-        >
-          <Text style={[styles.modeTabIcon, mode === 'crop' && styles.modeTabIconActive]}>📐</Text>
-          <Text style={[styles.modeTabText, mode === 'crop' && styles.modeTabTextActive]}>
-            크롭
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'filter' && styles.modeTabActive]}
-          onPress={() => setMode('filter')}
-        >
-          <Text style={[styles.modeTabIcon, mode === 'filter' && styles.modeTabIconActive]}>🎨</Text>
-          <Text style={[styles.modeTabText, mode === 'filter' && styles.modeTabTextActive]}>
-            필터
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'adjust' && styles.modeTabActive]}
-          onPress={() => setMode('adjust')}
-        >
-          <Text style={[styles.modeTabIcon, mode === 'adjust' && styles.modeTabIconActive]}>🎚️</Text>
-          <Text style={[styles.modeTabText, mode === 'adjust' && styles.modeTabTextActive]}>
-            보정
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'beauty' && styles.modeTabActive]}
-          onPress={() => setMode('beauty')}
-        >
-          <Text style={[styles.modeTabIcon, mode === 'beauty' && styles.modeTabIconActive]}>✨</Text>
-          <Text style={[styles.modeTabText, mode === 'beauty' && styles.modeTabTextActive]}>
-            뷰티
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Tool Panel */}
       <Animated.View entering={FadeInDown.duration(300)} style={styles.toolPanel}>
-        {mode === 'crop' && (
-          <RatioSelector selectedRatio={selectedRatioId} onSelect={handleRatioSelect} />
-        )}
-        {mode === 'filter' && (
-          <FilterStrip
-            imageUri={imageUri}
-            selectedFilter={selectedFilter.id}
-            onSelect={handleFilterSelect}
-          />
-        )}
-        {mode === 'adjust' && (
-          <AdjustPanel values={adjustValues} onChange={setAdjustValues} />
-        )}
-        {mode === 'beauty' && (
-          <BeautyPanel values={beautyValues} onChange={setBeautyValues} />
-        )}
+        <RatioSelector selectedRatio={selectedRatioId} onSelect={handleRatioSelect} />
       </Animated.View>
     </GestureHandlerRootView>
   );
@@ -544,9 +415,6 @@ const styles = StyleSheet.create({
   previewImage: {
     backgroundColor: '#111',
   },
-  filterPreviewOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   zoomIndicator: {
     position: 'absolute',
     top: 12,
@@ -575,43 +443,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  modeTabs: {
-    flexDirection: 'row',
-    backgroundColor: Colors.dark.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
-  },
-  modeTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm + 2,
-    gap: 6,
-  },
-  modeTabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.dark.accent,
-  },
-  modeTabIcon: {
-    fontSize: 16,
-    opacity: 0.5,
-  },
-  modeTabIconActive: {
-    opacity: 1,
-  },
-  modeTabText: {
-    color: Colors.dark.textMuted,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  modeTabTextActive: {
-    color: Colors.dark.accentLight,
-  },
   toolPanel: {
     backgroundColor: Colors.dark.surface,
     paddingBottom: Platform.OS === 'ios' ? 34 : Spacing.md,
     minHeight: 100,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.border,
   },
   // Export done screen
   doneContainer: {

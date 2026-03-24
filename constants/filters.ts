@@ -280,10 +280,10 @@ export const FILTERS: FilterPreset[] = FILTER_CATEGORIES.flatMap((cat) => cat.fi
 
 export const ASPECT_RATIOS = [
   { id: 'free', label: 'Free', labelKo: '자유', ratio: null },
-  { id: '1:1', label: '1:1', labelKo: '1:1', ratio: 1 },
-  { id: '9:16', label: '9:16', labelKo: '9:16', ratio: 9 / 16 },
-  { id: '16:9', label: '16:9', labelKo: '16:9', ratio: 16 / 9 },
-  { id: '4:5', label: '4:5', labelKo: '4:5', ratio: 4 / 5 },
+  { id: '1:1', label: '1:1', labelKo: '정방형 (1:1)', ratio: 1 },
+  { id: '4:5', label: '4:5', labelKo: '인스타 (4:5)', ratio: 4 / 5 },
+  { id: '9:16', label: '9:16', labelKo: '스토리 (9:16)', ratio: 9 / 16 },
+  { id: '16:9', label: '16:9', labelKo: '유튜브 (16:9)', ratio: 16 / 9 },
   { id: '3:4', label: '3:4', labelKo: '3:4', ratio: 3 / 4 },
   { id: '4:3', label: '4:3', labelKo: '4:3', ratio: 4 / 3 },
 ];

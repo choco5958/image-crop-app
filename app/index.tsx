@@ -14,6 +14,7 @@ import Animated, {
   FadeInDown,
   FadeInUp,
 } from 'react-native-reanimated';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
 const { width } = Dimensions.get('window');
 
@@ -111,6 +112,15 @@ export default function HomeScreen() {
         <Text style={styles.footerText}>
           지원 비율: 1:1 · 9:16 · 16:9 · 4:5 · 3:4 · Free
         </Text>
+        <View style={styles.adContainer}>
+          <BannerAd
+            unitId={TestIds.BANNER}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+          />
+        </View>
       </Animated.View>
     </View>
   );
@@ -267,11 +277,20 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: Platform.OS === 'ios' ? 20 : 0,
+    width: '100%',
+    alignItems: 'center',
   },
   footerText: {
     color: Colors.dark.textMuted,
     fontSize: 12,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  adContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.surface,
   },
 });
