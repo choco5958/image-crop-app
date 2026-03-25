@@ -19,11 +19,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
 
-  const openPolicy = async (type: 'privacy' | 'terms') => {
-    const url = type === 'privacy' 
-      ? 'https://example.com/privacy' 
-      : 'https://example.com/terms';
-    await WebBrowser.openBrowserAsync(url);
+  const openPolicy = (type: 'privacy' | 'terms') => {
+    router.push(`/${type}` as any);
   };
 
   const languages: { id: Language; label: string; flag: string }[] = [

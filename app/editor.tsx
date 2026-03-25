@@ -1,5 +1,4 @@
 import AdjustPanel from "@/components/adjust-panel";
-import { useLanguage } from '@/context/language-context';
 import {
   AdEventType,
   InterstitialAd,
@@ -13,6 +12,7 @@ import RatioSelector from "@/components/ratio-selector";
 import RotationSlider from "@/components/rotation-slider";
 import { FilterPreset } from "@/constants/filters";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/language-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -25,7 +25,6 @@ import {
   Dimensions,
   Image,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -86,16 +85,22 @@ export default function EditorScreen() {
   const [activeTab, setActiveTab] = useState<"crop" | "adjust" | "filter">(
     "crop",
   );
-  const [cropSubTab, setCropSubTab] = useState<"ratio" | "rotation">(
-    "ratio",
-  );
+  const [cropSubTab, setCropSubTab] = useState<"ratio" | "rotation">("ratio");
 
-  // Adjust / Filter States
   const [brightness, setBrightness] = useState(1);
   const [contrast, setContrast] = useState(1);
   const [saturation, setSaturation] = useState(1);
   const [warmth, setWarmth] = useState(1);
   const [vignette, setVignette] = useState(0);
+  const [exposure, setExposure] = useState(1);
+  const [brilliance, setBrilliance] = useState(0);
+  const [highlights, setHighlights] = useState(0);
+  const [shadows, setShadows] = useState(0);
+  const [tint, setTint] = useState(0);
+  const [sharpness, setSharpness] = useState(0);
+  const [vibrance, setVibrance] = useState(1);
+  const [definition, setDefinition] = useState(0);
+  const [blackPoint, setBlackPoint] = useState(1);
   const [activeFilterId, setActiveFilterId] = useState("original");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [overlayColor, setOverlayColor] = useState("transparent");
@@ -111,6 +116,19 @@ export default function EditorScreen() {
     setContrast(filter.contrast);
     setSaturation(filter.saturation);
     setOverlayColor(filter.overlay);
+
+    // Apply extended professional adjustments from the preset
+    setExposure(filter.exposure);
+    setBrilliance(filter.brilliance);
+    setHighlights(filter.highlights);
+    setShadows(filter.shadows);
+    setWarmth(filter.warmth);
+    setTint(filter.tint);
+    setVignette(filter.vignette);
+    setSharpness(filter.sharpness);
+    setVibrance(filter.vibrance || 1);
+    setDefinition(filter.definition || 0);
+    setBlackPoint(filter.blackPoint || 1);
   }, []);
 
   const cropRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
@@ -204,7 +222,7 @@ export default function EditorScreen() {
     // 1. Reset the crop box to its maximum stable size for the current ratio.
     // This prevents the "shrinking spiral" where we scale against a shrunk box.
     cropOverlayRef.current?.resetBox();
-    
+
     // The resetBox call immediately updates cropRef.current to the 'initial' state.
     const crop = cropRef.current;
     if (crop.width === 0 || crop.height === 0) return;
@@ -286,14 +304,17 @@ export default function EditorScreen() {
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, imagePanGesture);
 
-  const imageAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-      { rotate: `${orientation + rotation}deg` },
-    ],
-  }), [orientation, rotation]);
+  const imageAnimatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+        { rotate: `${orientation + rotation}deg` },
+      ],
+    }),
+    [orientation, rotation],
+  );
 
   const processExport = async (isPremium: boolean) => {
     setIsExporting(true);
@@ -321,7 +342,9 @@ export default function EditorScreen() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // 2. Apply Filters
-        ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
+        ctx.filter = `brightness(${brightness * exposure * blackPoint}) contrast(${contrast}) saturate(${saturation * vibrance}) hue-rotate(${tint * 45}deg) ${
+          sharpness > 0 || definition !== 0 ? "url(#adjust-sharpness)" : ""
+        } ${highlights !== 0 || shadows !== 0 ? "url(#adjust-hi-sh)" : ""}`;
 
         // 3. Transformations
         ctx.save();
@@ -332,14 +355,18 @@ export default function EditorScreen() {
 
         // 4. Draw Image (centered)
         ctx.drawImage(image, -displayW / 2, -displayH / 2, displayW, displayH);
-        
+
         ctx.restore();
 
         // 5. Apply Vignette (simple radial gradient for web)
         if (vignette > 0) {
           const grad = ctx.createRadialGradient(
-            canvas.width / 2, canvas.height / 2, 0,
-            canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.5
+            canvas.width / 2,
+            canvas.height / 2,
+            0,
+            canvas.width / 2,
+            canvas.height / 2,
+            Math.max(canvas.width, canvas.height) / 1.5,
           );
           grad.addColorStop(0, "rgba(0,0,0,0)");
           grad.addColorStop(1, `rgba(0,0,0,${vignette * 0.9})`);
@@ -355,19 +382,26 @@ export default function EditorScreen() {
         const resultCtx = resultCanvas.getContext("2d");
         resultCtx?.drawImage(
           canvas,
-          crop.x * qualityScale, crop.y * qualityScale, crop.width * qualityScale, crop.height * qualityScale,
-          0, 0, resultCanvas.width, resultCanvas.height
+          crop.x * qualityScale,
+          crop.y * qualityScale,
+          crop.width * qualityScale,
+          crop.height * qualityScale,
+          0,
+          0,
+          resultCanvas.width,
+          resultCanvas.height,
         );
 
         const link = document.createElement("a");
         link.href = resultCanvas.toDataURL("image/jpeg", 0.92);
         link.download = `croplab_${Date.now()}.jpg`;
         link.click();
-        
+
         setExportDone(true);
       } else {
         // --- Native Export Logic (ViewShot) ---
-        if (!viewShotRef.current?.capture) throw new Error("ViewShot not ready");
+        if (!viewShotRef.current?.capture)
+          throw new Error("ViewShot not ready");
 
         const pr = 2; // captures at 2x resolution
         const snapshotUri = await viewShotRef.current.capture();
@@ -397,7 +431,7 @@ export default function EditorScreen() {
       }
     } catch (error) {
       console.error("Export error:", error);
-      Alert.alert(t('error'), t('saveError'));
+      Alert.alert(t("error"), t("saveError"));
     } finally {
       setIsExporting(false);
     }
@@ -417,11 +451,11 @@ export default function EditorScreen() {
           <View style={styles.doneIcon}>
             <Text style={styles.doneEmoji}>✅</Text>
           </View>
-          <Text style={styles.doneTitle}>{t('saveCompleteTitle')}</Text>
+          <Text style={styles.doneTitle}>{t("saveCompleteTitle")}</Text>
           <Text style={styles.doneSubtitle}>
             {Platform.OS === "web"
-              ? t('saveCompleteWeb')
-              : t('saveCompleteNative')}
+              ? t("saveCompleteWeb")
+              : t("saveCompleteNative")}
           </Text>
           <View style={styles.doneActions}>
             <TouchableOpacity
@@ -448,7 +482,7 @@ export default function EditorScreen() {
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.doneButtonText}>{t('continueEditing')}</Text>
+              <Text style={styles.doneButtonText}>{t("continueEditing")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.doneButton, styles.doneButtonPrimary]}
@@ -473,7 +507,7 @@ export default function EditorScreen() {
               <Text
                 style={[styles.doneButtonText, styles.doneButtonPrimaryText]}
               >
-                {t('newPhoto')}
+                {t("newPhoto")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -492,7 +526,7 @@ export default function EditorScreen() {
         >
           <Text style={styles.headerBtnText}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('edit')}</Text>
+        <Text style={styles.headerTitle}>{t("edit")}</Text>
         <TouchableOpacity
           onPress={handleExportClick}
           style={[styles.headerBtn, styles.exportBtn]}
@@ -501,7 +535,7 @@ export default function EditorScreen() {
           {isExporting ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.exportBtnText}>{t('save')}</Text>
+            <Text style={styles.exportBtnText}>{t("save")}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -532,7 +566,15 @@ export default function EditorScreen() {
                     { width: displayW, height: displayH },
                     Platform.OS === "web" &&
                       ({
-                        filter: `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`,
+                        filter: `brightness(${brightness * exposure * blackPoint}) contrast(${contrast}) saturate(${saturation * vibrance}) hue-rotate(${tint * 45}deg) ${
+                          sharpness > 0 || definition !== 0
+                            ? "url(#adjust-sharpness)"
+                            : ""
+                        } ${
+                          highlights !== 0 || shadows !== 0
+                            ? "url(#adjust-hi-sh)"
+                            : ""
+                        }`,
                       } as any),
                   ]}
                   resizeMode="contain"
@@ -595,43 +637,84 @@ export default function EditorScreen() {
         {/* Tab Contents */}
         <View style={styles.tabContentContainer}>
           {activeTab === "crop" && (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.tabContent, { paddingBottom: 0 }]}>
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={[styles.tabContent, { paddingBottom: 0 }]}
+            >
               {/* Sub-tab Selector */}
               <View style={styles.cropSubTabBar}>
-                <TouchableOpacity 
-                  onPress={() => { Haptics.selectionAsync(); setCropSubTab('ratio'); }}
-                  style={[styles.cropSubTab, cropSubTab === 'ratio' && styles.cropSubTabActive]}
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setCropSubTab("ratio");
+                  }}
+                  style={[
+                    styles.cropSubTab,
+                    cropSubTab === "ratio" && styles.cropSubTabActive,
+                  ]}
                 >
-                  <Text style={[styles.cropSubTabText, cropSubTab === 'ratio' && styles.cropSubTabTextActive]}>
-                    {t('ratio')}
+                  <Text
+                    style={[
+                      styles.cropSubTabText,
+                      cropSubTab === "ratio" && styles.cropSubTabTextActive,
+                    ]}
+                  >
+                    {t("ratio")}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => { Haptics.selectionAsync(); setCropSubTab('rotation'); }}
-                  style={[styles.cropSubTab, cropSubTab === 'rotation' && styles.cropSubTabActive]}
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setCropSubTab("rotation");
+                  }}
+                  style={[
+                    styles.cropSubTab,
+                    cropSubTab === "rotation" && styles.cropSubTabActive,
+                  ]}
                 >
-                  <Text style={[styles.cropSubTabText, cropSubTab === 'rotation' && styles.cropSubTabTextActive]}>
-                    {t('skew')}
+                  <Text
+                    style={[
+                      styles.cropSubTabText,
+                      cropSubTab === "rotation" && styles.cropSubTabTextActive,
+                    ]}
+                  >
+                    {t("skew")}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {cropSubTab === "ratio" ? (
-                <View style={{ flex: 1, justifyContent: 'center' }}>
-                  <View style={[styles.cropActionHeader, { justifyContent: 'space-between', width: '100%', paddingHorizontal: 24, marginBottom: 12 }]}>
+                <View style={{ flex: 1, justifyContent: "center" }}>
+                  <View
+                    style={[
+                      styles.cropActionHeader,
+                      {
+                        justifyContent: "space-between",
+                        width: "100%",
+                        paddingHorizontal: 24,
+                        marginBottom: 12,
+                      },
+                    ]}
+                  >
                     {/* Background Palette */}
                     <View style={styles.bgPalette}>
                       {["#000000", "#FFFFFF"].map((col) => (
                         <TouchableOpacity
                           key={col}
-                          onPress={() => { Haptics.selectionAsync(); setBgColor(col); }}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setBgColor(col);
+                          }}
                           style={[
                             styles.paletteCircle,
-                            { 
-                              backgroundColor: col, 
-                              width: 28, 
+                            {
+                              backgroundColor: col,
+                              width: 28,
                               height: 28,
-                              borderColor: col === "#FFFFFF" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)"
+                              borderColor:
+                                col === "#FFFFFF"
+                                  ? "rgba(255,255,255,0.3)"
+                                  : "rgba(255,255,255,0.1)",
                             },
                             bgColor === col && styles.paletteCircleActive,
                           ]}
@@ -642,10 +725,17 @@ export default function EditorScreen() {
                     {/* Fit Toggle */}
                     <TouchableOpacity
                       onPress={toggleFitMode}
-                      style={[styles.iconBtn, isFitMode && { backgroundColor: Colors.dark.accent }]}
+                      style={[
+                        styles.iconBtn,
+                        isFitMode && { backgroundColor: Colors.dark.accent },
+                      ]}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name={isFitMode ? "expand" : "contract"} size={22} color={isFitMode ? "#fff" : Colors.dark.text} />
+                      <Ionicons
+                        name={isFitMode ? "expand" : "contract"}
+                        size={22}
+                        color={isFitMode ? "#fff" : Colors.dark.text}
+                      />
                     </TouchableOpacity>
                   </View>
 
@@ -657,28 +747,69 @@ export default function EditorScreen() {
                   </View>
                 </View>
               ) : (
-                <View style={[styles.tabContent, { gap: 12, justifyContent: 'center' }]}>
-                  <View style={[styles.cropActionHeader, { justifyContent: 'center', width: '100%', gap: 20 }]}>
-                    <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setOrientation(o => o - 90); }} style={styles.iconBtn}>
-                      <Ionicons name="refresh" size={20} color={Colors.dark.text} style={{ transform: [{ scaleX: -1 }] }} />
+                <View
+                  style={[
+                    styles.tabContent,
+                    { gap: 12, justifyContent: "center" },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.cropActionHeader,
+                      { justifyContent: "center", width: "100%", gap: 20 },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setOrientation((o) => o - 90);
+                      }}
+                      style={styles.iconBtn}
+                    >
+                      <Ionicons
+                        name="refresh"
+                        size={20}
+                        color={Colors.dark.text}
+                        style={{ transform: [{ scaleX: -1 }] }}
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setOrientation(o => o + 90); }} style={styles.iconBtn}>
-                      <Ionicons name="refresh" size={20} color={Colors.dark.text} />
+                    <TouchableOpacity
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setOrientation((o) => o + 90);
+                      }}
+                      style={styles.iconBtn}
+                    >
+                      <Ionicons
+                        name="refresh"
+                        size={20}
+                        color={Colors.dark.text}
+                      />
                     </TouchableOpacity>
-                    
+
                     <View style={styles.resetContainer}>
-                      <TouchableOpacity 
-                        onPress={() => { 
+                      <TouchableOpacity
+                        onPress={() => {
                           if (rotation === 0 && orientation === 0) return;
-                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                          setRotation(0); 
-                          setOrientation(0); 
-                        }} 
-                        style={[styles.resetBtn, (rotation === 0 && orientation === 0) && { opacity: 0.5 }]}
+                          Haptics.notificationAsync(
+                            Haptics.NotificationFeedbackType.Success,
+                          );
+                          setRotation(0);
+                          setOrientation(0);
+                        }}
+                        style={[
+                          styles.resetBtn,
+                          rotation === 0 &&
+                            orientation === 0 && { opacity: 0.5 },
+                        ]}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="refresh" size={14} color={Colors.dark.text} />
-                        <Text style={styles.resetText}>{t('reset')}</Text>
+                        <Ionicons
+                          name="refresh"
+                          size={14}
+                          color={Colors.dark.text}
+                        />
+                        <Text style={styles.resetText}>{t("reset")}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -711,6 +842,24 @@ export default function EditorScreen() {
                 setWarmth={setWarmth}
                 vignette={vignette}
                 setVignette={setVignette}
+                exposure={exposure}
+                setExposure={setExposure}
+                brilliance={brilliance}
+                setBrilliance={setBrilliance}
+                highlights={highlights}
+                setHighlights={setHighlights}
+                shadows={shadows}
+                setShadows={setShadows}
+                tint={tint}
+                setTint={setTint}
+                sharpness={sharpness}
+                setSharpness={setSharpness}
+                vibrance={vibrance}
+                setVibrance={setVibrance}
+                definition={definition}
+                setDefinition={setDefinition}
+                blackPoint={blackPoint}
+                setBlackPoint={setBlackPoint}
               />
             </Animated.View>
           )}
@@ -746,14 +895,14 @@ export default function EditorScreen() {
               }
               style={{ marginBottom: 4 }}
             />
-              <Text
-                style={[
-                  styles.tabLabel,
-                  activeTab === "crop" && styles.tabLabelActive,
-                ]}
-              >
-                {t('crop')}
-              </Text>
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === "crop" && styles.tabLabelActive,
+              ]}
+            >
+              {t("crop")}
+            </Text>
             {activeTab === "crop" && <View style={styles.activeDot} />}
           </TouchableOpacity>
           <TouchableOpacity
@@ -771,14 +920,14 @@ export default function EditorScreen() {
               }
               style={{ marginBottom: 4 }}
             />
-              <Text
-                style={[
-                  styles.tabLabel,
-                  activeTab === "filter" && styles.tabLabelActive,
-                ]}
-              >
-                {t('filter')}
-              </Text>
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === "filter" && styles.tabLabelActive,
+              ]}
+            >
+              {t("filter")}
+            </Text>
             {activeTab === "filter" && <View style={styles.activeDot} />}
           </TouchableOpacity>
           <TouchableOpacity
@@ -796,14 +945,14 @@ export default function EditorScreen() {
               }
               style={{ marginBottom: 4 }}
             />
-              <Text
-                style={[
-                  styles.tabLabel,
-                  activeTab === "adjust" && styles.tabLabelActive,
-                ]}
-              >
-                {t('adjust')}
-              </Text>
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === "adjust" && styles.tabLabelActive,
+              ]}
+            >
+              {t("adjust")}
+            </Text>
             {activeTab === "adjust" && <View style={styles.activeDot} />}
           </TouchableOpacity>
         </View>
@@ -812,27 +961,27 @@ export default function EditorScreen() {
       {/* Save Selection Modal */}
       {showSaveModal && (
         <View style={StyleSheet.absoluteFill}>
-          <Animated.View 
+          <Animated.View
             entering={FadeIn.duration(200)}
             style={styles.modalOverlay}
           >
-            <TouchableOpacity 
-              activeOpacity={1} 
+            <TouchableOpacity
+              activeOpacity={1}
               onPress={() => setShowSaveModal(false)}
-              style={StyleSheet.absoluteFill} 
+              style={StyleSheet.absoluteFill}
             />
-            
-            <Animated.View 
+
+            <Animated.View
               entering={FadeInDown.springify()}
               style={styles.modalContent}
             >
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('saveOptions')}</Text>
-                <Text style={styles.modalSubtitle}>{t('saveResolution')}</Text>
+                <Text style={styles.modalTitle}>{t("saveOptions")}</Text>
+                <Text style={styles.modalSubtitle}>{t("saveResolution")}</Text>
               </View>
 
               <View style={styles.modalOptions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalOptionBtn}
                   onPress={() => {
                     setShowSaveModal(false);
@@ -840,27 +989,42 @@ export default function EditorScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.optionIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                    <Ionicons name="image-outline" size={24} color={Colors.dark.text} />
+                  <View
+                    style={[
+                      styles.optionIcon,
+                      { backgroundColor: "rgba(255,255,255,0.1)" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="image-outline"
+                      size={24}
+                      color={Colors.dark.text}
+                    />
                   </View>
                   <View style={styles.optionInfo}>
-                    <Text style={styles.modalOptionTitle}>{t('standardQuality')}</Text>
-                    <Text style={styles.modalOptionDesc}>표준 해상도로 빠르게 저장합니다.</Text>
+                    <Text style={styles.modalOptionTitle}>
+                      {t("standardQuality")}
+                    </Text>
+                    <Text style={styles.modalOptionDesc}>
+                      표준 해상도로 빠르게 저장합니다.
+                    </Text>
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalOptionBtn, styles.modalOptionBtnPrimary]}
                   onPress={() => {
                     setShowSaveModal(false);
-                    if (Platform.OS === 'web') {
+                    if (Platform.OS === "web") {
                       processExport(true);
                     } else if (rewardedLoaded) {
                       // Original Ad logic for native platforms
                       let rewarded = false;
                       const unsubEarned = rewardedAd.addAdEventListener(
                         RewardedAdEventType.EARNED_REWARD,
-                        () => { rewarded = true; },
+                        () => {
+                          rewarded = true;
+                        },
                       );
                       const unsubClosed = rewardedAd.addAdEventListener(
                         AdEventType.CLOSED,
@@ -878,24 +1042,96 @@ export default function EditorScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.optionIcon, { backgroundColor: 'rgba(52, 199, 89, 0.2)' }]}>
+                  <View
+                    style={[
+                      styles.optionIcon,
+                      { backgroundColor: "rgba(52, 199, 89, 0.2)" },
+                    ]}
+                  >
                     <Ionicons name="sparkles" size={24} color="#34C759" />
                   </View>
                   <View style={styles.optionInfo}>
-                    <Text style={[styles.modalOptionTitle, { color: "#34C759" }]}>👑 {t('highQuality')}</Text>
-                    <Text style={styles.modalOptionDesc}>{t('highQualityDesc')}</Text>
+                    <Text
+                      style={[styles.modalOptionTitle, { color: "#34C759" }]}
+                    >
+                      👑 {t("highQuality")}
+                    </Text>
+                    <Text style={styles.modalOptionDesc}>
+                      {t("highQualityDesc")}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCancelBtn}
                 onPress={() => setShowSaveModal(false)}
               >
-                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
+                <Text style={styles.modalCancelText}>{t("cancel")}</Text>
               </TouchableOpacity>
             </Animated.View>
           </Animated.View>
+        </View>
+      )}
+      {/* SVG Filters for Web Adjustments */}
+      {Platform.OS === "web" && (
+        <View
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0 }}
+          pointerEvents="none"
+        >
+          {/* We can define custom feComponentTransfer or feColorMatrix here if needed for highlights/shadows */}
+          <svg width="0" height="0">
+            <defs>
+              <filter id="adjust-sharpness">
+                <feConvolveMatrix
+                  order="3"
+                  kernelMatrix={`0 -${sharpness + Math.abs(definition) * 0.5} 0 -${sharpness + Math.abs(definition) * 0.5} ${1 + 4 * (sharpness + Math.abs(definition) * 0.5)} -${sharpness + Math.abs(definition) * 0.5} 0 -${sharpness + Math.abs(definition) * 0.5} 0`}
+                  preserveAlpha="true"
+                />
+              </filter>
+              <filter id="adjust-hi-sh">
+                <feComponentTransfer>
+                  {/* Highlights Adjustment */}
+                  <feFuncR
+                    type="gamma"
+                    exponent={
+                      highlights > 0 ? 1 - highlights * 0.5 : 1 - highlights
+                    }
+                  />
+                  <feFuncG
+                    type="gamma"
+                    exponent={
+                      highlights > 0 ? 1 - highlights * 0.5 : 1 - highlights
+                    }
+                  />
+                  <feFuncB
+                    type="gamma"
+                    exponent={
+                      highlights > 0 ? 1 - highlights * 0.5 : 1 - highlights
+                    }
+                  />
+                </feComponentTransfer>
+                <feComponentTransfer>
+                  {/* Shadows Adjustment */}
+                  <feFuncR
+                    type="linear"
+                    slope={1 + shadows * 0.5}
+                    intercept={shadows * 0.1}
+                  />
+                  <feFuncG
+                    type="linear"
+                    slope={1 + shadows * 0.5}
+                    intercept={shadows * 0.1}
+                  />
+                  <feFuncB
+                    type="linear"
+                    slope={1 + shadows * 0.5}
+                    intercept={shadows * 0.1}
+                  />
+                </feComponentTransfer>
+              </filter>
+            </defs>
+          </svg>
         </View>
       )}
     </GestureHandlerRootView>
@@ -912,7 +1148,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.md,
-    paddingTop: Platform.OS === "ios" ? 56 : 40,
+    paddingTop: Platform.OS === "ios" ? 56 : 20,
     paddingBottom: Spacing.sm,
     backgroundColor: Colors.dark.background,
   },
@@ -991,7 +1227,14 @@ const styles = StyleSheet.create({
   },
   toolPanel: {
     backgroundColor: Colors.dark.surface,
-    paddingBottom: Platform.OS === "ios" ? (SCREEN_HEIGHT < 700 ? 10 : 20) : (SCREEN_HEIGHT < 700 ? 10 : 0),
+    paddingBottom:
+      Platform.OS === "ios"
+        ? SCREEN_HEIGHT < 700
+          ? 10
+          : 20
+        : SCREEN_HEIGHT < 700
+          ? 10
+          : 0,
     borderTopWidth: 1,
     borderTopColor: Colors.dark.border,
   },
@@ -1001,8 +1244,8 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
-    justifyContent: "flex-end",
-    paddingBottom: 4,
+    justifyContent: "center",
+    paddingBottom: 20,
   },
   tabContentCenter: {
     flex: 1,
@@ -1039,25 +1282,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.accent,
   },
   cropSubTabBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: SCREEN_HEIGHT < 700 ? 8 : 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-    marginBottom: SCREEN_HEIGHT < 700 ? 4 : 8,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+    marginBottom: 12,
   },
   cropSubTab: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+    borderRadius: 24,
+    backgroundColor: "transparent",
   },
   cropSubTabActive: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   cropSubTabText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.dark.textSecondary,
   },
   cropSubTabTextActive: {
@@ -1094,13 +1339,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: Colors.dark.surfaceLight,
   },
-  resetContainer: {
-  },
+  resetContainer: {},
   resetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: "rgba(255,255,255,0.1)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -1108,7 +1352,7 @@ const styles = StyleSheet.create({
   resetText: {
     color: Colors.dark.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   bgPalette: {
     flexDirection: "row",

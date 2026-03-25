@@ -11,12 +11,11 @@ interface Props {
 }
 
 export default function FilterPanel({ activeFilterId, onSelectFilter, imageUri }: Props) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [activeCatId, setActiveCatId] = React.useState('basic');
   
-  // Get active category filters
-  const selectedCategory = FILTER_CATEGORIES.find(cat => cat.id === activeCatId) || FILTER_CATEGORIES[0];
-  const currentFilters = selectedCategory.filters;
+  // Get active filters
+  const currentFilters = FILTER_CATEGORIES.find(cat => cat.id === activeCatId)?.filters || [];
 
   return (
     <View style={styles.container}>
@@ -89,34 +88,38 @@ export default function FilterPanel({ activeFilterId, onSelectFilter, imageUri }
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingVertical: Spacing.sm,
+    flex: 1,
+    justifyContent: 'center',
+    paddingBottom: 20,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.lg,
-    paddingTop: 4,
+    paddingHorizontal: 20,
+    gap: 16,
+    paddingTop: 8,
     paddingBottom: 8,
     alignItems: 'center',
   },
   subTabBar: {
     flexDirection: 'row',
-    paddingBottom: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-    marginBottom: 8,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 12,
   },
   subTabScroll: {
     paddingHorizontal: 20,
     gap: 8,
   },
   subTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 24,
     backgroundColor: 'transparent',
   },
   subTabActive: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   subTabText: {
     fontSize: 13,
