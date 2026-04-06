@@ -4,6 +4,7 @@ import ValueSlider from './value-slider';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '@/context/language-context';
+import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -117,10 +118,10 @@ export default function AdjustPanel({
       <View style={styles.subTabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subTabScroll}>
           {subTabs.map(tab => (
-            <TouchableOpacity 
+              <TouchableOpacity 
               key={tab.id}
               onPress={() => {
-                import('expo-haptics').then(H => H.selectionAsync());
+                Haptics.selectionAsync();
                 setActiveTool(tab.id as any);
               }}
               style={[styles.subTab, activeTool === tab.id && styles.subTabActive]}
@@ -140,7 +141,7 @@ export default function AdjustPanel({
             <TouchableOpacity 
               onPress={() => {
                 if (currentValue === currentConfig.def) return;
-                import('expo-haptics').then(Haptics => Haptics.selectionAsync());
+                Haptics.selectionAsync();
                 onChange(currentConfig.def);
               }}
               activeOpacity={0.7} 

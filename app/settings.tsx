@@ -19,7 +19,7 @@ export default function SettingsScreen() {
   const { language, setLanguage, t } = useLanguage();
 
   const openPolicy = (type: 'privacy' | 'terms') => {
-    router.push(`/${type}` as any);
+    router.push(type === 'privacy' ? '/privacy' : '/terms');
   };
 
   const languages: { id: Language; label: string; flag: string }[] = [

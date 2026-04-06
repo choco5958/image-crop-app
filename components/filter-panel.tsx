@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Image }
 import { Colors } from '@/constants/theme';
 import { FILTER_CATEGORIES, FilterPreset } from '@/constants/filters';
 import { useLanguage } from '@/context/language-context';
+import * as Haptics from 'expo-haptics';
 
 interface Props {
   activeFilterId: string;
@@ -26,7 +27,7 @@ export default function FilterPanel({ activeFilterId, onSelectFilter, imageUri }
             <TouchableOpacity 
               key={cat.id}
               onPress={() => {
-                import('expo-haptics').then(H => H.selectionAsync());
+                Haptics.selectionAsync();
                 setActiveCatId(cat.id);
               }}
               style={[styles.subTab, activeCatId === cat.id && styles.subTabActive]}

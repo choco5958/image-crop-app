@@ -14,6 +14,7 @@ export const TestIds = {
 export const AdEventType = {
   LOADED: 'loaded',
   CLOSED: 'closed',
+  ERROR: 'error',
 };
 
 export const RewardedAdEventType = {

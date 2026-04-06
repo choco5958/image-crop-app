@@ -13,12 +13,18 @@ import RotationSlider from "@/components/rotation-slider";
 import { FilterPreset } from "@/constants/filters";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useLanguage } from "@/context/language-context";
+import {
+  applyFilterPreset,
+  buildBaseWebFilter,
+  DEFAULT_ADJUSTMENTS,
+  type AdjustmentState,
+} from "@/utils/editor-helpers";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as MediaLibrary from "expo-media-library";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useReducer, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -59,6 +65,39 @@ const rewardedAd = RewardedAd.createForAdRequest(TestIds.REWARDED, {
   requestNonPersonalizedAdsOnly: true,
 });
 
+type AdjustmentAction =
+  | {
+      type: "set";
+      key: keyof AdjustmentState;
+      value: number;
+    }
+  | {
+      type: "applyPreset";
+      preset: FilterPreset;
+    }
+  | {
+      type: "reset";
+    };
+
+function adjustmentsReducer(
+  state: AdjustmentState,
+  action: AdjustmentAction,
+): AdjustmentState {
+  switch (action.type) {
+    case "set":
+      return {
+        ...state,
+        [action.key]: action.value,
+      };
+    case "applyPreset":
+      return applyFilterPreset(state, action.preset);
+    case "reset":
+      return DEFAULT_ADJUSTMENTS;
+    default:
+      return state;
+  }
+}
+
 export default function EditorScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
@@ -75,8 +114,12 @@ export default function EditorScreen() {
   const [selectedRatio, setSelectedRatio] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
-  const [adLoaded, setAdLoaded] = useState(false);
-  const [rewardedLoaded, setRewardedLoaded] = useState(false);
+  const [interstitialStatus, setInterstitialStatus] = useState<
+    "idle" | "loading" | "ready" | "showing" | "failed"
+  >("idle");
+  const [rewardedStatus, setRewardedStatus] = useState<
+    "idle" | "loading" | "ready" | "showing" | "failed"
+  >("idle");
   const [rotation, setRotation] = useState(0); // Fine tilt (-45 to 45)
   const [orientation, setOrientation] = useState(0); // 90 degree increments
   const [bgColor, setBgColor] = useState("#000000");
@@ -88,21 +131,26 @@ export default function EditorScreen() {
     "crop",
   );
   const [cropSubTab, setCropSubTab] = useState<"ratio" | "rotation">("ratio");
-
-  const [brightness, setBrightness] = useState(1);
-  const [contrast, setContrast] = useState(1);
-  const [saturation, setSaturation] = useState(1);
-  const [warmth, setWarmth] = useState(1);
-  const [vignette, setVignette] = useState(0);
-  const [exposure, setExposure] = useState(1);
-  const [brilliance, setBrilliance] = useState(0);
-  const [highlights, setHighlights] = useState(0);
-  const [shadows, setShadows] = useState(0);
-  const [tint, setTint] = useState(0);
-  const [sharpness, setSharpness] = useState(0);
-  const [vibrance, setVibrance] = useState(1);
-  const [definition, setDefinition] = useState(0);
-  const [blackPoint, setBlackPoint] = useState(1);
+  const [adjustments, dispatchAdjustments] = useReducer(
+    adjustmentsReducer,
+    DEFAULT_ADJUSTMENTS,
+  );
+  const {
+    brightness,
+    contrast,
+    saturation,
+    warmth,
+    vignette,
+    exposure,
+    brilliance,
+    highlights,
+    shadows,
+    tint,
+    sharpness,
+    vibrance,
+    definition,
+    blackPoint,
+  } = adjustments;
   const [activeFilterId, setActiveFilterId] = useState("original");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [overlayColor, setOverlayColor] = useState("transparent");
@@ -112,25 +160,53 @@ export default function EditorScreen() {
     setActiveTab(tab);
   }, []);
 
+  const setBrightness = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "brightness", value });
+  }, []);
+  const setContrast = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "contrast", value });
+  }, []);
+  const setSaturation = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "saturation", value });
+  }, []);
+  const setWarmth = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "warmth", value });
+  }, []);
+  const setVignette = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "vignette", value });
+  }, []);
+  const setExposure = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "exposure", value });
+  }, []);
+  const setBrilliance = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "brilliance", value });
+  }, []);
+  const setHighlights = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "highlights", value });
+  }, []);
+  const setShadows = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "shadows", value });
+  }, []);
+  const setTint = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "tint", value });
+  }, []);
+  const setSharpness = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "sharpness", value });
+  }, []);
+  const setVibrance = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "vibrance", value });
+  }, []);
+  const setDefinition = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "definition", value });
+  }, []);
+  const setBlackPoint = useCallback((value: number) => {
+    dispatchAdjustments({ type: "set", key: "blackPoint", value });
+  }, []);
+
   const handleSelectFilter = useCallback((filter: FilterPreset) => {
     setActiveFilterId(filter.id);
-    setBrightness(filter.brightness);
-    setContrast(filter.contrast);
-    setSaturation(filter.saturation);
     setOverlayColor(filter.overlay);
-
-    // Apply extended professional adjustments from the preset
-    setExposure(filter.exposure);
-    setBrilliance(filter.brilliance);
-    setHighlights(filter.highlights);
-    setShadows(filter.shadows);
-    setWarmth(filter.warmth);
-    setTint(filter.tint);
-    setVignette(filter.vignette);
-    setSharpness(filter.sharpness);
-    setVibrance(filter.vibrance || 1);
-    setDefinition(filter.definition || 0);
-    setBlackPoint(filter.blackPoint || 1);
+    dispatchAdjustments({ type: "applyPreset", preset: filter });
   }, []);
 
   const cropRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
@@ -169,16 +245,45 @@ export default function EditorScreen() {
   }
 
   React.useEffect(() => {
+    setInterstitialStatus("loading");
+    setRewardedStatus("loading");
+
     const unsubscribeLoaded = interstitial.addAdEventListener(
       AdEventType.LOADED,
       () => {
-        setAdLoaded(true);
+        setInterstitialStatus("ready");
+      },
+    );
+    const unsubscribeInterstitialClosed = interstitial.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        setInterstitialStatus("loading");
+        interstitial.load();
+      },
+    );
+    const unsubscribeInterstitialError = interstitial.addAdEventListener(
+      (AdEventType as any).ERROR,
+      () => {
+        setInterstitialStatus("failed");
       },
     );
     const unsubscribeRewarded = rewardedAd.addAdEventListener(
       RewardedAdEventType.LOADED,
       () => {
-        setRewardedLoaded(true);
+        setRewardedStatus("ready");
+      },
+    );
+    const unsubscribeRewardedClosed = rewardedAd.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        setRewardedStatus("loading");
+        rewardedAd.load();
+      },
+    );
+    const unsubscribeRewardedError = rewardedAd.addAdEventListener(
+      (AdEventType as any).ERROR,
+      () => {
+        setRewardedStatus("failed");
       },
     );
 
@@ -188,7 +293,11 @@ export default function EditorScreen() {
 
     return () => {
       unsubscribeLoaded();
+      unsubscribeInterstitialClosed();
+      unsubscribeInterstitialError();
       unsubscribeRewarded();
+      unsubscribeRewardedClosed();
+      unsubscribeRewardedError();
     };
   }, []);
 
@@ -330,6 +439,18 @@ export default function EditorScreen() {
     [orientation, rotation],
   );
 
+  const baseWebFilter = useMemo(
+    () => buildBaseWebFilter(adjustments),
+    [adjustments],
+  );
+  const warmthOverlayColor = useMemo(
+    () =>
+      warmth > 1
+        ? `rgba(255, 140, 0, ${(warmth - 1) * 0.25})`
+        : `rgba(0, 100, 255, ${(1 - warmth) * 0.25})`,
+    [warmth],
+  );
+
   const processExport = async (isPremium: boolean) => {
     setIsExporting(true);
     try {
@@ -356,9 +477,7 @@ export default function EditorScreen() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // 2. Apply Filters
-        ctx.filter = `brightness(${brightness * exposure * blackPoint}) contrast(${contrast}) saturate(${saturation * vibrance}) hue-rotate(${tint * 45}deg) ${
-          sharpness > 0 || definition !== 0 ? "url(#adjust-sharpness)" : ""
-        } ${highlights !== 0 || shadows !== 0 ? "url(#adjust-hi-sh)" : ""}`;
+        ctx.filter = baseWebFilter;
 
         // 3. Transformations
         ctx.save();
@@ -457,6 +576,49 @@ export default function EditorScreen() {
     setShowSaveModal(true);
   };
 
+  const showInterstitialOrProceed = useCallback((action: () => void) => {
+    if (interstitialStatus === "ready") {
+      setInterstitialStatus("showing");
+      const unsub = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        unsub();
+        action();
+      });
+      interstitial.show();
+      return;
+    }
+    action();
+  }, [interstitialStatus]);
+
+  const runPremiumExport = () => {
+    if (Platform.OS === "web") {
+      processExport(true);
+      return;
+    }
+    if (rewardedStatus !== "ready") {
+      Alert.alert(t("notice"), t("adLoading"));
+      return;
+    }
+
+    setRewardedStatus("showing");
+    let rewarded = false;
+    const unsubEarned = rewardedAd.addAdEventListener(
+      RewardedAdEventType.EARNED_REWARD,
+      () => {
+        rewarded = true;
+      },
+    );
+    const unsubClosed = rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
+      unsubEarned();
+      unsubClosed();
+      if (rewarded) {
+        processExport(true);
+      } else {
+        Alert.alert(t("notice"), t("adLoading"));
+      }
+    });
+    rewardedAd.show();
+  };
+
   if (exportDone) {
     return (
       <View style={styles.container}>
@@ -477,24 +639,11 @@ export default function EditorScreen() {
             <TouchableOpacity
               style={styles.doneButton}
               onPress={() => {
-                const action = () => {
+                showInterstitialOrProceed(() => {
                   setExportDone(false);
                   setSelectedRatioId("free");
                   setSelectedRatio(null);
-                };
-                if (adLoaded) {
-                  const unsub = interstitial.addAdEventListener(
-                    AdEventType.CLOSED,
-                    () => {
-                      unsub();
-                      interstitial.load();
-                      action();
-                    },
-                  );
-                  interstitial.show();
-                } else {
-                  action();
-                }
+                });
               }}
               activeOpacity={0.8}
             >
@@ -503,20 +652,7 @@ export default function EditorScreen() {
             <TouchableOpacity
               style={[styles.doneButton, styles.doneButtonPrimary]}
               onPress={() => {
-                const action = () => router.replace("/");
-                if (adLoaded) {
-                  const unsub = interstitial.addAdEventListener(
-                    AdEventType.CLOSED,
-                    () => {
-                      unsub();
-                      interstitial.load();
-                      action();
-                    },
-                  );
-                  interstitial.show();
-                } else {
-                  action();
-                }
+                showInterstitialOrProceed(() => router.replace("/"));
               }}
               activeOpacity={0.8}
             >
@@ -582,15 +718,7 @@ export default function EditorScreen() {
                     { width: displayW, height: displayH },
                     Platform.OS === "web" &&
                       ({
-                        filter: `brightness(${brightness * exposure * blackPoint}) contrast(${contrast}) saturate(${saturation * vibrance}) hue-rotate(${tint * 45}deg) ${
-                          sharpness > 0 || definition !== 0
-                            ? "url(#adjust-sharpness)"
-                            : ""
-                        } ${
-                          highlights !== 0 || shadows !== 0
-                            ? "url(#adjust-hi-sh)"
-                            : ""
-                        }`,
+                        filter: baseWebFilter,
                       } as any),
                   ]}
                   resizeMode="contain"
@@ -608,10 +736,7 @@ export default function EditorScreen() {
                   style={[
                     StyleSheet.absoluteFill,
                     {
-                      backgroundColor:
-                        warmth > 1
-                          ? `rgba(255, 140, 0, ${(warmth - 1) * 0.25})`
-                          : `rgba(0, 100, 255, ${(1 - warmth) * 0.25})`,
+                      backgroundColor: warmthOverlayColor,
                     },
                     { pointerEvents: "none" },
                   ]}
@@ -1031,30 +1156,7 @@ export default function EditorScreen() {
                   style={[styles.modalOptionBtn, styles.modalOptionBtnPrimary]}
                   onPress={() => {
                     setShowSaveModal(false);
-                    if (Platform.OS === "web") {
-                      processExport(true);
-                    } else if (rewardedLoaded) {
-                      // Original Ad logic for native platforms
-                      let rewarded = false;
-                      const unsubEarned = rewardedAd.addAdEventListener(
-                        RewardedAdEventType.EARNED_REWARD,
-                        () => {
-                          rewarded = true;
-                        },
-                      );
-                      const unsubClosed = rewardedAd.addAdEventListener(
-                        AdEventType.CLOSED,
-                        () => {
-                          unsubEarned();
-                          unsubClosed();
-                          rewardedAd.load();
-                          if (rewarded) processExport(true);
-                        },
-                      );
-                      rewardedAd.show();
-                    } else {
-                      Alert.alert(t("notice"), t("adLoading"));
-                    }
+                    runPremiumExport();
                   }}
                   activeOpacity={0.7}
                 >
@@ -1087,67 +1189,6 @@ export default function EditorScreen() {
               </TouchableOpacity>
             </Animated.View>
           </Animated.View>
-        </View>
-      )}
-      {/* SVG Filters for Web Adjustments */}
-      {Platform.OS === "web" && (
-        <View
-          style={{ position: "absolute", width: 0, height: 0, opacity: 0 }}
-          pointerEvents="none"
-        >
-          {/* We can define custom feComponentTransfer or feColorMatrix here if needed for highlights/shadows */}
-          <svg width="0" height="0">
-            <defs>
-              <filter id="adjust-sharpness">
-                <feConvolveMatrix
-                  order="3"
-                  kernelMatrix={`0 -${sharpness + Math.abs(definition) * 0.5} 0 -${sharpness + Math.abs(definition) * 0.5} ${1 + 4 * (sharpness + Math.abs(definition) * 0.5)} -${sharpness + Math.abs(definition) * 0.5} 0 -${sharpness + Math.abs(definition) * 0.5} 0`}
-                  preserveAlpha="true"
-                />
-              </filter>
-              <filter id="adjust-hi-sh">
-                <feComponentTransfer>
-                  {/* Highlights Adjustment */}
-                  <feFuncR
-                    type="gamma"
-                    exponent={
-                      highlights > 0 ? 1 - highlights * 0.5 : 1 - highlights
-                    }
-                  />
-                  <feFuncG
-                    type="gamma"
-                    exponent={
-                      highlights > 0 ? 1 - highlights * 0.5 : 1 - highlights
-                    }
-                  />
-                  <feFuncB
-                    type="gamma"
-                    exponent={
-                      highlights > 0 ? 1 - highlights * 0.5 : 1 - highlights
-                    }
-                  />
-                </feComponentTransfer>
-                <feComponentTransfer>
-                  {/* Shadows Adjustment */}
-                  <feFuncR
-                    type="linear"
-                    slope={1 + shadows * 0.5}
-                    intercept={shadows * 0.1}
-                  />
-                  <feFuncG
-                    type="linear"
-                    slope={1 + shadows * 0.5}
-                    intercept={shadows * 0.1}
-                  />
-                  <feFuncB
-                    type="linear"
-                    slope={1 + shadows * 0.5}
-                    intercept={shadows * 0.1}
-                  />
-                </feComponentTransfer>
-              </filter>
-            </defs>
-          </svg>
         </View>
       )}
     </GestureHandlerRootView>
