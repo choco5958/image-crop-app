@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Image } from 'react-native';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { FILTER_CATEGORIES, FilterPreset } from '@/constants/filters';
 import { useLanguage } from '@/context/language-context';
 
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function FilterPanel({ activeFilterId, onSelectFilter, imageUri }: Props) {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
   const [activeCatId, setActiveCatId] = React.useState('basic');
   
   // Get active filters

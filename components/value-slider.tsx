@@ -23,7 +23,7 @@ export default function ValueSlider({ value, min, max, onChange, width = 200, fo
 
   useEffect(() => {
     currentVal.value = value;
-  }, [value]);
+  }, [value, currentVal]);
 
   const pan = Gesture.Pan()
     .onStart(() => {

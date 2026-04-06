@@ -10,10 +10,8 @@ import Animated, {
   withTiming,
   runOnJS,
 } from 'react-native-reanimated';
-import { Colors } from '@/constants/theme';
 
-const HANDLE_SIZE = 20;
-const MIN_CROP_SIZE = 60;
+const MIN_CROP_SIZE = 48;
 
 interface CropOverlayProps {
   containerWidth: number;
@@ -38,7 +36,7 @@ const CropOverlay = forwardRef<CropOverlayRef, CropOverlayProps>(({
   // Calculate initial crop dimensions
   const initial = useMemo(() => {
     if (aspectRatio === null) {
-      const margin = 20;
+      const margin = 4;
       return {
         x: margin,
         y: margin,
@@ -48,8 +46,8 @@ const CropOverlay = forwardRef<CropOverlayRef, CropOverlayProps>(({
     }
 
     let w: number, h: number;
-    const availW = containerWidth - 40;
-    const availH = containerHeight - 40;
+    const availW = containerWidth - 8;
+    const availH = containerHeight - 8;
 
     if (aspectRatio >= availW / availH) {
       w = availW;
@@ -81,7 +79,7 @@ const CropOverlay = forwardRef<CropOverlayRef, CropOverlayProps>(({
     
     // Immediately report the target bounds to parent
     onCropChange?.(initial);
-  }, [initial, onCropChange]);
+  }, [initial, onCropChange, cropX, cropY, cropW, cropH]);
 
   useImperativeHandle(ref, () => ({
     centerBox: () => {
@@ -99,14 +97,14 @@ const CropOverlay = forwardRef<CropOverlayRef, CropOverlayProps>(({
     }
   }));
 
-  const reportCrop = () => {
+  const reportCrop = React.useCallback(() => {
     onCropChange?.({
       x: cropX.value,
       y: cropY.value,
       width: cropW.value,
       height: cropH.value,
     });
-  };
+  }, [onCropChange, cropX, cropY, cropW, cropH]);
 
   const isInteracting = useSharedValue(0.1); // slightly visible normally
 
@@ -246,7 +244,23 @@ const CropOverlay = forwardRef<CropOverlayRef, CropOverlayProps>(({
         isInteracting.value = withTiming(0.1, { duration: 300 });
         runOnJS(reportCrop)();
       });
-  }, [isLocked, containerWidth, containerHeight, aspectRatio]);
+  }, [
+    isLocked,
+    containerWidth,
+    containerHeight,
+    aspectRatio,
+    cropX,
+    cropY,
+    cropW,
+    cropH,
+    savedX,
+    savedY,
+    savedW,
+    savedH,
+    dragMode,
+    isInteracting,
+    reportCrop,
+  ]);
 
   const cropBoxStyle = useAnimatedStyle(() => ({
     left: cropX.value,
@@ -325,6 +339,7 @@ const CropOverlay = forwardRef<CropOverlayRef, CropOverlayProps>(({
 });
 
 export default CropOverlay;
+CropOverlay.displayName = 'CropOverlay';
 
 const CORNER_SIZE = 20;
 const CORNER_THICK = 3;

@@ -30,6 +30,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Gesture,
   GestureDetector,
@@ -59,6 +60,7 @@ const rewardedAd = RewardedAd.createForAdRequest(TestIds.REWARDED, {
 });
 
 export default function EditorScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     uri: string;
     imageWidth: string;
@@ -144,13 +146,13 @@ export default function EditorScreen() {
   const savedTranslateY = useSharedValue(0);
 
   // Calculate image display dimensions
-  const PREVIEW_PADDING = 20;
+  const isShortScreen = SCREEN_HEIGHT < 700;
+  const PREVIEW_PADDING = isShortScreen ? 12 : 20;
 
   // Constrain max image height so it never overlaps the dense bottom panels
-  // On very short screens (e.g. iPhone SE 1st gen), use a smaller multiplier
-  const isShortScreen = SCREEN_HEIGHT < 700;
+  // On very short screens (e.g. iPhone SE), let it take more space
   const maxW = SCREEN_WIDTH - PREVIEW_PADDING * 2;
-  const maxH = isShortScreen ? SCREEN_HEIGHT * 0.38 : SCREEN_HEIGHT * 0.45;
+  const maxH = isShortScreen ? SCREEN_HEIGHT * 0.45 : SCREEN_HEIGHT * 0.52;
 
   const imageAspect = useMemo(
     () => originalWidth / originalHeight,
@@ -198,7 +200,7 @@ export default function EditorScreen() {
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
     setIsFitMode(false);
-  }, []);
+  }, [scale, translateX, translateY, savedScale, savedTranslateX, savedTranslateY]);
 
   const handleRatioSelect = useCallback(
     (id: string, ratio: number | null) => {
@@ -256,7 +258,19 @@ export default function EditorScreen() {
     savedTranslateY.value = 0;
 
     runOnJS(setIsFitMode)(newIsFitMode);
-  }, [displayW, displayH, isFitMode, rotation, orientation]);
+  }, [
+    displayW,
+    displayH,
+    isFitMode,
+    rotation,
+    orientation,
+    scale,
+    translateX,
+    translateY,
+    savedScale,
+    savedTranslateX,
+    savedTranslateY,
+  ]);
 
   // Pinch gesture for zoom
   const pinchGesture = Gesture.Pinch()
@@ -427,6 +441,8 @@ export default function EditorScreen() {
         if (status === "granted") {
           await MediaLibrary.saveToLibraryAsync(manipResult.uri);
           setExportDone(true);
+        } else {
+          Alert.alert(t("notice"), t("mediaPermissionDenied"));
         }
       }
     } catch (error) {
@@ -519,7 +535,7 @@ export default function EditorScreen() {
   return (
     <GestureHandlerRootView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.headerBtn}
@@ -632,7 +648,7 @@ export default function EditorScreen() {
       {/* Tool Panel */}
       <Animated.View
         entering={FadeInDown.duration(300)}
-        style={styles.toolPanel}
+        style={[styles.toolPanel, { paddingBottom: Math.max(insets.bottom, 12) }]}
       >
         {/* Tab Contents */}
         <View style={styles.tabContentContainer}>
@@ -1006,7 +1022,7 @@ export default function EditorScreen() {
                       {t("standardQuality")}
                     </Text>
                     <Text style={styles.modalOptionDesc}>
-                      표준 해상도로 빠르게 저장합니다.
+                      {t("standardQualityDesc")}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -1037,7 +1053,7 @@ export default function EditorScreen() {
                       );
                       rewardedAd.show();
                     } else {
-                      Alert.alert("알림", "광고를 불러오는 중입니다.");
+                      Alert.alert(t("notice"), t("adLoading"));
                     }
                   }}
                   activeOpacity={0.7}
@@ -1148,7 +1164,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.md,
-    paddingTop: Platform.OS === "ios" ? 56 : 20,
     paddingBottom: Spacing.sm,
     backgroundColor: Colors.dark.background,
   },
@@ -1227,19 +1242,11 @@ const styles = StyleSheet.create({
   },
   toolPanel: {
     backgroundColor: Colors.dark.surface,
-    paddingBottom:
-      Platform.OS === "ios"
-        ? SCREEN_HEIGHT < 700
-          ? 10
-          : 20
-        : SCREEN_HEIGHT < 700
-          ? 10
-          : 0,
     borderTopWidth: 1,
     borderTopColor: Colors.dark.border,
   },
   tabContentContainer: {
-    minHeight: SCREEN_HEIGHT < 700 ? 100 : 120,
+    minHeight: SCREEN_HEIGHT < 700 ? 80 : 120,
     justifyContent: "flex-end",
   },
   tabContent: {
@@ -1284,10 +1291,10 @@ const styles = StyleSheet.create({
   cropSubTabBar: {
     flexDirection: "row",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: SCREEN_HEIGHT < 700 ? 8 : 12,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.08)",
-    marginBottom: 12,
+    marginBottom: SCREEN_HEIGHT < 700 ? 8 : 12,
   },
   cropSubTab: {
     paddingHorizontal: 20,
@@ -1311,7 +1318,7 @@ const styles = StyleSheet.create({
   cropActionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 12,
+    paddingTop: SCREEN_HEIGHT < 700 ? 4 : 12,
   },
   sliderSection: {
     paddingHorizontal: 32,

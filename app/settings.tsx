@@ -5,17 +5,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
-  Switch,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useLanguage, Language } from '@/context/language-context';
-import * as WebBrowser from 'expo-web-browser';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
 
@@ -33,7 +32,7 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
         <TouchableOpacity 
           onPress={() => router.back()} 
           style={styles.backBtn}
@@ -72,7 +71,7 @@ export default function SettingsScreen() {
 
         {/* Policy Section */}
         <Animated.View entering={FadeInDown.delay(200)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Policy & Terms</Text>
+          <Text style={styles.sectionTitle}>{t('policyTerms')}</Text>
           <View style={styles.sectionCard}>
             <TouchableOpacity 
               style={styles.menuItem}
@@ -93,7 +92,7 @@ export default function SettingsScreen() {
 
         {/* Info Section */}
         <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
-          <Text style={styles.sectionTitle}>App Info</Text>
+          <Text style={styles.sectionTitle}>{t('appInfo')}</Text>
           <View style={styles.sectionCard}>
             <View style={[styles.menuItem, { borderBottomWidth: 0 }]}>
               <Text style={styles.menuItemText}>{t('version')}</Text>
@@ -117,7 +116,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingHorizontal: 16,
     paddingBottom: 16,
     backgroundColor: '#0A0A0F',

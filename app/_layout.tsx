@@ -1,9 +1,13 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { LanguageProvider } from '@/context/language-context';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
@@ -12,6 +16,11 @@ export default function RootLayout() {
         const TrackingTransparency = await import('expo-tracking-transparency');
         await TrackingTransparency.requestTrackingPermissionsAsync();
       }
+      
+      // Artificial delay for premium feel
+      setTimeout(async () => {
+        await SplashScreen.hideAsync();
+      }, 1500);
     })();
   }, []);
 

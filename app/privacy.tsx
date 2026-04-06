@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
@@ -7,6 +8,7 @@ import { useLanguage } from '@/context/language-context';
 import { PRIVACY_CONTENT } from '@/constants/legal';
 
 export default function PrivacyScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { language, t } = useLanguage();
   const content = PRIVACY_CONTENT[language] || PRIVACY_CONTENT['en'];
@@ -14,7 +16,7 @@ export default function PrivacyScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
         <TouchableOpacity 
           onPress={() => router.back()} 
           style={styles.backBtn}
@@ -56,7 +58,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingHorizontal: 16,
     paddingBottom: 16,
     backgroundColor: '#0A0A0F',

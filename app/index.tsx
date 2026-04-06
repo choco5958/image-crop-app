@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Platform,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Colors, Spacing, BorderRadius } from '@/constants/theme';
@@ -19,9 +19,8 @@ import { BannerAd, BannerAdSize, TestIds } from '@/components/ads';
 import { useLanguage } from '@/context/language-context';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
-
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -45,7 +44,7 @@ export default function HomeScreen() {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      alert('카메라 권한이 필요합니다.');
+      alert(t('cameraPermissionRequired'));
       return;
     }
 
@@ -75,7 +74,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Header with Settings */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <View style={{ width: 44 }} />
         <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.logoTitleArea}>
           <Text style={styles.headerTitleTiny}>CropLab</Text>
@@ -134,7 +133,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Footer (inside scroll area for stability) */}
-        <Animated.View entering={FadeInDown.delay(800)} style={styles.footer}>
+        <Animated.View entering={FadeInDown.delay(800)} style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <Text style={styles.footerText}>
             {t('supportRatios')}: 1:1 · 9:16 · 16:9 · 4:5 · 3:4 · Free
           </Text>
@@ -162,7 +161,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingHorizontal: 16,
     width: '100%',
     zIndex: 10,
@@ -339,7 +337,6 @@ const styles = StyleSheet.create({
   footer: {
     width: '100%',
     alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
     backgroundColor: Colors.dark.background,
   },
   footerText: {
